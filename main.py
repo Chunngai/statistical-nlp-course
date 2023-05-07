@@ -1,22 +1,27 @@
 from typing import List
 
+from tokenizers.rule_based_tokenizer import mm_tokenize, rmm_tokenize, bmm_tokenize
+
 
 class Parser:
     """A toy parser with basic nlp functionalities."""
 
     def __init__(self):
-        ...
+        self.tokenizers = {
+            "mm": mm_tokenize,
+            "rmm": rmm_tokenize,
+            "bmm": bmm_tokenize,
+        }
 
-    @classmethod
-    def tokenize(cls, text: str) -> List[str]:
+    def tokenize(self, text: str, tokenizer="bmm") -> List[str]:
         """Text tokenization.
 
         :param text: (str) text to tokenize.
         :return: (List[str]) tokens of the text.
         """
 
-        # TODO: Replace with the implemented method.
-        return ["包含", "基础", "自然语言处理", "功能", "的", "简单", "分词器", "。"]
+        tokenizer = self.tokenizers[tokenizer]
+        return tokenizer(text)
 
     @classmethod
     def pos_tag(cls, tokens: List[str]) -> List[str]:
@@ -46,7 +51,7 @@ if __name__ == '__main__':
 
     parser = Parser()
     # Tokenization.
-    tokens = parser.tokenize(text=text)
+    tokens = parser.tokenize(text=text, tokenizer="bmm")
     print(tokens)
     # Pos tagging.
     pos_list = parser.pos_tag(tokens=tokens)
