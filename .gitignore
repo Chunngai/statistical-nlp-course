@@ -2,6 +2,7 @@
 __pycache__/
 
 tokenizers/data
+pos_taggers/data
 pos_taggers/_hmm_pos_tagger.py
 pos_taggers/_data
 syntactic_parsers/_cky_parser.py
