@@ -5,7 +5,7 @@ def generate_dic():
     """
 
     dic = set()
-    with open("tokenizers/data/199801.txt", "r", encoding="gbk") as f:
+    with open("data/199801.txt", "r", encoding="gbk") as f:
         for line in f.read().strip().splitlines():  # Read each line.
             for word in line.split(" "):
                 dic.add(word.split("/")[0])  # Read each word.

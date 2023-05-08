@@ -1,6 +1,5 @@
 # -*- encoding: utf-8 -*-
 import json
-import time
 
 import pandas as pd
 
@@ -15,7 +14,7 @@ class HmmTokenizer:
         self.line_num = 0
         self.smooth = 1e-6
 
-        self.train('tokenizers/data/PeopleDaily_Token.txt')
+        self.train('data/199801.txt')
 
     @staticmethod
     def __state(word):
@@ -38,11 +37,15 @@ class HmmTokenizer:
             save_model: 是否保存模型参数
             filepath (string): 训练预料的路径
         """
-        start_time = time.thread_time()
-        with open(filepath, 'r', encoding='utf8') as f:
+        with open(filepath, 'r', encoding='gbk') as f:
             for line in f.readlines():
-                self.line_num += 1
                 line = line.strip().split()
+                line = [
+                    word.split("/")[0]
+                    for word in line
+                ]
+
+                self.line_num += 1
                 # 获取观测（字符）序列
                 char_seq = list(''.join(line))
                 # 获取状态（BMES）序列
@@ -77,7 +80,6 @@ class HmmTokenizer:
                  for k2, num in dic.items()}
             for k1, dic in self.trans_p.items()
         }
-        end_time = time.thread_time()
         # 保存参数
         if save_model:
             parameters = {

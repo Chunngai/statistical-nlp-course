@@ -14,5 +14,5 @@ if __name__ == '__main__':
     print(pos_list)
 
     # Syntax parsing.
-    constituency_root = parser.constituency_parse(text=text)
+    constituency_root = parser.constituency_parse(tokens=["fish", "people", "fish", "tanks"])
     print(constituency_root)

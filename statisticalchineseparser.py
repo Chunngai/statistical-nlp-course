@@ -1,6 +1,7 @@
 from typing import List
 
 from pos_taggers.hmm_pos_tagger import HmmPosTagger
+from syntactic_parsers.cky_parser import CKYParser, read_grammar
 from tokenizers.hmm_tokenizar import HmmTokenizer
 from tokenizers.max_match_tokenizer import mm_tokenize, rmm_tokenize, bmm_tokenize
 
@@ -17,6 +18,26 @@ class StatisticalChineseParser:
         }
 
         self.pos_tagger = HmmPosTagger()
+
+        self.constituency_parser = CKYParser(
+            *read_grammar(grammar="""
+                S   ->  NP VP [0.9]
+                S   ->  VP [0.1]
+                VP  ->  V NP [0.5]
+                VP  ->  V [0.1]
+                VP  ->  V @VP_V [0.3]
+                VP  ->  V PP [0.1]
+                @VP_V -> NP PP [1.0]
+                NP  ->  NP NP [0.1]
+                NP  ->  NP PP [0.2]
+                NP  ->  N [0.7]
+                PP  ->  P NP [1.0]
+                V   ->  "people" [0.1] | "fish" [0.6] | "tanks" [0.3]
+                N   ->  "people" [0.5] | "fish" [0.2] | "tanks" [0.2] | "rods" [0.1]
+                P   ->  "with" [1.0]
+            """),
+            root_value="S"
+        )
 
     def tokenize(self, text: str, tokenizer: str = "hmm") -> List[str]:
         """Text tokenization.
@@ -38,31 +59,11 @@ class StatisticalChineseParser:
 
         return self.pos_tagger.predict(tokens)
 
-    @classmethod
-    def constituency_parse(cls, text: str):
+    def constituency_parse(self, tokens: List[str]):
         """Constituency syntax parsing.
 
-        :param text: (str): text to parse.
+        :param tokens: (List[str]): tokens to parse.
         :return: (Node): root node of the parsed tree.
         """
 
-        # TODO: Replace with the implemented method.
-        return None
-
-
-if __name__ == '__main__':
-    text = "一个基于统计的中文文本解析器。"
-
-    parser = StatisticalChineseParser()
-
-    # Tokenization.
-    tokens = parser.tokenize(text=text, tokenizer="bmm")
-    print(tokens)
-
-    # Pos tagging.
-    pos_list = parser.pos_tag(tokens=tokens)
-    print(pos_list)
-
-    # Syntax parsing.
-    constituency_root = parser.constituency_parse(text=text)
-    print(constituency_root)
+        return self.constituency_parser.parse(tokens=tokens)

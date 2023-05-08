@@ -13,7 +13,7 @@ class HmmPosTagger:
         self.emit_sum = {}
 
         # Train the hmm model.
-        self.train("pos_taggers/data/199801.txt")
+        self.train("data/199801.txt")
 
     def __upd_trans(self, curpos, nxtpos):
         """更新转移概率矩阵

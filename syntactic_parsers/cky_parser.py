@@ -1,10 +1,5 @@
 from typing import List, Tuple, Set, Dict
 
-import nltk.tokenize
-
-
-LEVEL = 0
-
 
 class Rule:
 
@@ -57,20 +52,29 @@ class Node:
         self.rchild = rchild
         self.prob = prob
 
-    def __str__(self):
-        node_str = self.value + " -> " + self.lchild.value + " " + self.rchild.value + " " + "[" + str(self.prob) + "]"
-        return node_str
+        self.LEVEL = -1
 
-    # def is_terminal_rule(self, terminal_set: Set) -> bool:
-    #     """
-    #     Judge the node which is the terminal rule: e.g. N -> "people" [0.5]
-    #     :param terminal_set: node.value set, which should be the word
-    #     :return: true or false
-    #     """
-    #     if self.lchild.value in terminal_set and self.rchild is None:
-    #         return True
-    #     else:
-    #         return False
+    def __str__(self):
+        def inorder(node):
+            nonlocal s
+
+            if node.value is not None:
+                self.LEVEL += 1
+                if node.has_lchild():
+                    s += f"{self.LEVEL * '  '}({node.value}, {node.prob:.2e})\n"
+                else:
+                    s += f"{self.LEVEL * '  '}{node.value}\n"
+
+            if node.has_lchild():
+                inorder(node.lchild)
+            if node.has_rchild():
+                inorder(node.rchild)
+
+            self.LEVEL -= 1
+
+        s = ""
+        inorder(self)
+        return s
 
     def has_rchild(self) -> bool:
         if self.rchild is not None:
@@ -84,45 +88,15 @@ class Node:
         else:
             return False
 
-    def inorder(self):
-        global LEVEL
-
-        if self.value is not None:
-            LEVEL += 1
-            if self.has_lchild():
-                print(LEVEL * "  ", end="")
-                print("(", self.value, ",", format(self.prob, '.2e'), ")")
-            else:
-                print(LEVEL * "  ", end="")
-                print(self.value)
-
-        if self.has_lchild():
-            self.lchild.inorder()
-        if self.has_rchild():
-            self.rchild.inorder()
-
-        LEVEL -= 1
-
 
 class CKYParser:
 
-    def __init__(self, tokenized_input_sentence: List[str], rule_list: List[Rule], terminal_set: Set[str], root_value: str):
-        """
-        Initialize the dynamic programming matrix of the parser
-        :param tokenized_input_sentence: the tokenized sentence should be parsed and return its constituency syntax tree
-
-        """
+    def __init__(self, rule_list: List[Rule], terminal_set: Set[str],
+                 root_value: str):
+        """Initialize the dynamic programming matrix of the parser"""
 
         # the number of dictionaries in each inner list is the number of column in the statistics table
         # the number of inner lists is the number of row in the statistics table
-        dp_matrix = [
-            [
-                {}
-                for _ in range(len(tokenized_input_sentence))
-            ] for _ in range(len(tokenized_input_sentence))
-        ]
-
-        self.dp_matrix = dp_matrix
 
         # divide the grammar rules into 3 types
         rules_for_terminal = []
@@ -143,14 +117,13 @@ class CKYParser:
         self.rules_for_terminal = rules_for_terminal
         self.unary_nt_rules = unary_nt_rules
         self.binary_nt_rules = binary_nt_rules
-        self.input_tokens = tokenized_input_sentence
         self.rule_list = rule_list
 
         # define the root node
         self.root = None
         self.root_value = root_value
 
-    def parse(self):
+    def parse(self, tokens):
 
         def _handle_unary_nt_rules(matrix_element: Dict):
 
@@ -196,24 +169,31 @@ class CKYParser:
                 if len(matrix_element.items()) == element_dict_len:
                     break
 
+        dp_matrix = [
+            [
+                {}
+                for _ in range(len(tokens))
+            ] for _ in range(len(tokens))
+        ]
+
         # i == j
         # fill the leaves nodes of the syntax tree (diagonal of the dp_matrix)
-        for i in range(len(self.input_tokens)):
+        for i in range(len(tokens)):
             for rule in self.rules_for_terminal:
-                if self.input_tokens[i] == rule.ltail:
+                if tokens[i] == rule.ltail:
                     current_terminal_node = Node(
                         value=rule.ltail,
                         prob=1.0,
                         lchild=None
                     )
 
-                    self.dp_matrix[i][i][rule.head] = Node(
+                    dp_matrix[i][i][rule.head] = Node(
                         value=rule.head,
                         lchild=current_terminal_node,
                         prob=rule.prob
                     )
 
-            _handle_unary_nt_rules(self.dp_matrix[i][i])
+            _handle_unary_nt_rules(dp_matrix[i][i])
 
         # i < j
         """
@@ -233,8 +213,8 @@ class CKYParser:
             begin   end
               0      3
         """
-        for span in range(1, len(self.input_tokens)):
-            for begin in range(len(self.input_tokens) - span):
+        for span in range(1, len(tokens)):
+            for begin in range(len(tokens) - span):
                 end = begin + span
 
                 for split in range(begin, end):
@@ -245,34 +225,34 @@ class CKYParser:
                     # or assume split = 1, the element of dp_matrix[0][2] derives from
                     # dp_matrix[0(begin)][1(split)] and dp_matrix[2(split+1)][2(end)]
                     for rule in self.binary_nt_rules:
-                        if rule.ltail in self.dp_matrix[begin][split].keys() and \
-                                rule.rtail in self.dp_matrix[split + 1][end].keys():
+                        if rule.ltail in dp_matrix[begin][split].keys() and \
+                                rule.rtail in dp_matrix[split + 1][end].keys():
                             # define a variable to store the prob of current candidate element of matrix[begin][end]
-                            current_prob = rule.prob * self.dp_matrix[begin][split][rule.ltail].prob \
-                                           * self.dp_matrix[split + 1][end][rule.rtail].prob
+                            current_prob = rule.prob * dp_matrix[begin][split][rule.ltail].prob \
+                                           * dp_matrix[split + 1][end][rule.rtail].prob
 
                             try:
-                                if current_prob > self.dp_matrix[begin][end][rule.head].prob:
-                                    self.dp_matrix[begin][end][rule.head] = Node(
+                                if current_prob > dp_matrix[begin][end][rule.head].prob:
+                                    dp_matrix[begin][end][rule.head] = Node(
                                         value=rule.head,
-                                        lchild=self.dp_matrix[begin][split][rule.ltail],
-                                        rchild=self.dp_matrix[split + 1][end][rule.rtail],
+                                        lchild=dp_matrix[begin][split][rule.ltail],
+                                        rchild=dp_matrix[split + 1][end][rule.rtail],
                                         prob=current_prob
                                     )
 
                             except KeyError:
-                                self.dp_matrix[begin][end][rule.head] = Node(
+                                dp_matrix[begin][end][rule.head] = Node(
                                     value=rule.head,
-                                    lchild=self.dp_matrix[begin][split][rule.ltail],
-                                    rchild=self.dp_matrix[split + 1][end][rule.rtail],
+                                    lchild=dp_matrix[begin][split][rule.ltail],
+                                    rchild=dp_matrix[split + 1][end][rule.rtail],
                                     prob=current_prob
                                 )
 
                             # handle the unary_nt_rules
-                            _handle_unary_nt_rules(matrix_element=self.dp_matrix[begin][end])
+                            _handle_unary_nt_rules(matrix_element=dp_matrix[begin][end])
 
         # store the root node
-        self.root = self.dp_matrix[0][len(self.input_tokens) - 1][self.root_value]
+        self.root = dp_matrix[0][len(tokens) - 1][self.root_value]
         print("The syntax tree is generated !")
         # print(self.dp_matrix[0][0]["N"].lchild)
         # print(self.dp_matrix[0][len(self.input_tokens) - 1]['S'])
@@ -280,7 +260,6 @@ class CKYParser:
         # handle the unary_nt_rules
         # print(list(self.dp_matrix[0][0].items()))
 
-    def get_root_node(self):
         return self.root
 
 
@@ -288,14 +267,14 @@ class CKYParser:
 # def visual_syntax_tree(root: Node):
 
 
-def read_grammar(grammar: str) -> Tuple[List[Rule], Set[str], Set[str]]:
+def read_grammar(grammar: str) -> Tuple[List[Rule], Set[str]]:
     """
     Read the PCFG grammar and convert each rule to Node object
     :param grammar: a string, storing the grammar rules
     :return: rule_list, non-terminal_list, terminal_list
     """
 
-    rule_list, non_terminal_node_list, terminal_node_list = [], [], []
+    rule_list, terminal_node_list = [], []
 
     # the first and last lines of grammar is '\n' token
     rules = grammar.split('\n')[1:-1]
@@ -305,7 +284,6 @@ def read_grammar(grammar: str) -> Tuple[List[Rule], Set[str], Set[str]]:
         # split the arrow
         current_value, children_and_prob = rule.split('->')
         current_value = current_value.strip()
-        non_terminal_node_list.append(current_value)
 
         # extract the children and probability
         # handle the rules of terminals
@@ -352,11 +330,8 @@ def read_grammar(grammar: str) -> Tuple[List[Rule], Set[str], Set[str]]:
             # judge if the rchild whether exists or not
             elif " " in current_children:
                 current_lchild, current_rchild = current_children.split(' ')
-                non_terminal_node_list.append(current_lchild)
-                non_terminal_node_list.append(current_rchild)
             else:
                 current_lchild = current_children
-                non_terminal_node_list.append(current_lchild)
 
             # current_node = Node(
             #     parent=current_value,
@@ -372,7 +347,7 @@ def read_grammar(grammar: str) -> Tuple[List[Rule], Set[str], Set[str]]:
             )
             rule_list.append(current_rule)
 
-    return rule_list, set(non_terminal_node_list), set(terminal_node_list)
+    return rule_list, set(terminal_node_list)
 
 
 if __name__ == '__main__':
@@ -395,21 +370,15 @@ if __name__ == '__main__':
     """
 
     # read and process the PCFG grammar
-    rule_list, non_terminal_node_set, terminal_node_set = read_grammar(grammar=grammar)
+    rule_list, terminal_node_set = read_grammar(grammar=grammar)
 
     # init the CKYParser
-    test = CKYParser(nltk.tokenize.word_tokenize('fish people fish tanks'),
-                     rule_list=rule_list,
-                     terminal_set=terminal_node_set,
-                     root_value="S"
-                     )
+    test = CKYParser(
+        rule_list=rule_list,
+        terminal_set=terminal_node_set,
+        root_value="S"
+    )
 
     # constituency parse
-    test.parse()
-
-    # get the root node of the syntax tree
-    root = test.get_root_node()
-
-    # visualize the syntax tree
-    root.inorder()
-
+    root = test.parse(tokens=["fish", "people", "fish", "tanks"])
+    print(root)
