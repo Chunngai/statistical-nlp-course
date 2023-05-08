@@ -1,46 +1,33 @@
-import re
+def generate_dic():
+    """Generate a dictionary.
 
-wordless = []
-with open("tokenizers/data/wordless.txt", "r", encoding="UTF-8") as f:
-    lines = f.read()
-for word in lines:
-    wordless.append(word)
+    :return: (set) The generated dictionary.
+    """
 
-dic = []
-with open("tokenizers/data/199801.txt", "r", encoding="gbk") as f:
-    lines = f.read()
-r1 = u'[a-zA-Z0-9’!"#$%&\'()*+,-./:;<=>?@，。?★、…【】《》？“”‘’！[\\]^_`{|}~（）]+'
-lines = re.sub(r1, '', lines)
-lines = re.split(r" ", lines)
-for word in lines:
-    if word not in wordless and word != "\n" and word != "":
-        dic.append(word)
+    dic = set()
+    with open("tokenizers/data/199801.txt", "r", encoding="gbk") as f:
+        for line in f.read().strip().splitlines():  # Read each line.
+            for word in line.split(" "):
+                dic.add(word.split("/")[0])  # Read each word.
+    return dic
 
 
-def select_word(text):
-    result = 0
-    for i in text:
-        if len(i) == 1:
-            result += 1
-    return result
+dic = generate_dic()
 
 
-def fully_tokenize(text):
+def mm_tokenize(text, max_len=3):
+    """Max match tokenization.
+
+    :param text: (str) Text to tokenize.
+    :param max_len: (int) Max word length.
+    :return: (List[str]) Words.
+    """
+    text = "".join(text.split())  # Remove spaces.
     word_list = []
-    for i in range(len(text)):
-        for j in range(i + 1, len(text) + 1):
-            word = text[i:j]
-            if word in dic:
-                word_list.append(word)
-    return word_list
-
-
-def mm_tokenize(text):
-    word_list = []
-    i = 0
+    i = 0  # Current index (count from the start).
     while i < len(text):
         longest_word = text[i]
-        for j in range(i + 1, len(text) + 1):
+        for j in range(i + 1, i + max_len + 1):
             word = text[i:j]
             if word in dic:
                 if len(word) > len(longest_word):
@@ -50,12 +37,19 @@ def mm_tokenize(text):
     return word_list
 
 
-def rmm_tokenize(text):
+def rmm_tokenize(text, max_len=3):
+    """Reversed max match tokenization.
+
+    :param text: (str) Text to tokenize.
+    :param max_len: (int) Max word length.
+    :return: (List[str]) Words.
+    """
+    text = "".join(text.split())  # Remove spaces.
     word_list = []
-    i = len(text) - 1
+    i = len(text) - 1  # Current index (count from the end).
     while i >= 0:
         longest_word = text[i]
-        for j in range(0, i):
+        for j in range(i - max_len + 1, i):
             word = text[j:i + 1]
             if word in dic:
                 if len(word) > len(longest_word):
@@ -65,17 +59,39 @@ def rmm_tokenize(text):
     return word_list
 
 
-def bmm_tokenize(text):
-    list_forward = mm_tokenize(text)
-    list_backward = rmm_tokenize(text)
+def bmm_tokenize(text, max_len=3):
+    """Bidirectional max match tokenization.
+
+    :param text: (str) Text to tokenize.
+    :param max_len: (int) Max word length.
+    :return: (List[str]) Words.
+    """
+
+    def count_single_words(text):
+        """Count the number of single characters.
+
+        :param text: (str) Text to tokenize.
+        :return: (int) Number of single words.
+        """
+        result = 0
+        for i in text:
+            if len(i) == 1:
+                result += 1
+        return result
+
+    text = "".join(text.split())  # Remove spaces.
+    list_forward = mm_tokenize(text, max_len)
+    list_backward = rmm_tokenize(text, max_len)
+    # Select the result with less words.
     if len(list_forward) > len(list_backward):
         list_final = list_backward[:]
     elif len(list_forward) < len(list_backward):
         list_final = list_forward[:]
     else:
-        if select_word(list_forward) > select_word(list_backward):
+        # Select the result with less single words.
+        if count_single_words(list_forward) > count_single_words(list_backward):
             list_final = list_backward[:]
-        elif select_word(list_forward) < select_word(list_backward):
+        elif count_single_words(list_forward) < count_single_words(list_backward):
             list_final = list_forward[:]
         else:
             list_final = list_backward[:]
@@ -83,7 +99,7 @@ def bmm_tokenize(text):
 
 
 if __name__ == "__main__":
-    text = "这是一个句子。"
+    text = "这是一个管弦乐。"
 
     mm_tokens = mm_tokenize(text)
     rmm_tokens = rmm_tokenize(text)
