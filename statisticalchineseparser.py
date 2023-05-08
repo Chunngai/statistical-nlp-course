@@ -1,5 +1,6 @@
 from typing import List
 
+from pos_taggers.hmm_pos_tagger import HmmPosTagger
 from tokenizers.rule_based_tokenizer import mm_tokenize, rmm_tokenize, bmm_tokenize
 
 
@@ -13,6 +14,8 @@ class StatisticalChineseParser:
             "bmm": bmm_tokenize,
         }
 
+        self.pos_tagger = HmmPosTagger()
+
     def tokenize(self, text: str, tokenizer: str = "bmm") -> List[str]:
         """Text tokenization.
 
@@ -24,16 +27,14 @@ class StatisticalChineseParser:
         tokenizer = self.tokenizers[tokenizer]
         return tokenizer(text)
 
-    @classmethod
-    def pos_tag(cls, tokens: List[str]) -> List[str]:
+    def pos_tag(self, tokens: List[str]) -> List[str]:
         """Part-of-speech tagging.
 
         :param tokens: (List[str]) Tokens for pos tagging.
         :return: (List[str]) POS labels for the tokens.
         """
 
-        # TODO: Replace with the implemented method.
-        return ["VV", "JJ", "NN", "NN", "DEC", "JJ", "NN", "PU"]
+        return self.pos_tagger.predict(tokens)
 
     @classmethod
     def constituency_parse(cls, text: str):

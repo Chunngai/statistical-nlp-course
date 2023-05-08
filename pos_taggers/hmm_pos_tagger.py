@@ -12,6 +12,9 @@ class HmmPosTagger:
         self.trans_sum = {}
         self.emit_sum = {}
 
+        # Train the hmm model.
+        self.train("pos_taggers/data/199801.txt")
+
     def __upd_trans(self, curpos, nxtpos):
         """更新转移概率矩阵
 
@@ -88,16 +91,15 @@ class HmmPosTagger:
         ]
         self.emit_sum = dict(zip(self.emit_prop.keys(), num_emit))
 
-    def predict(self, sentence):
+    def predict(self, tokens):
         """Viterbi 算法预测词性
 
         Args:
-            sentence (string): 分词后的句子（空格隔开）
+            tokens (List[str]): 词语序列
 
         Returns:
             list: 词性标注序列
         """
-        sentence = sentence.strip().split()
         posnum = len(self.poslist)
         dp = pd.DataFrame(index=self.poslist)
         path = pd.DataFrame(index=self.poslist)
@@ -106,7 +108,7 @@ class HmmPosTagger:
         num_sentence = sum(self.start_prop.values()) + posnum
         for pos in self.poslist:
             sta_pos = self.start_prop.get(pos, 1e-16) / num_sentence
-            sta_pos *= (self.emit_prop[pos].get(sentence[0], 1e-16) /
+            sta_pos *= (self.emit_prop[pos].get(tokens[0], 1e-16) /
                         self.emit_sum[pos])
             sta_pos = math.log(sta_pos)
             start.append(sta_pos)
@@ -114,11 +116,11 @@ class HmmPosTagger:
         # 初始化 path 矩阵
         path[0] = ['_start_'] * posnum
         # 递推
-        for t in range(1, len(sentence)):  # 句子中第 t 个词
+        for t in range(1, len(tokens)):  # 句子中第 t 个词
             prob_pos, path_point = [], []
             for i in self.poslist:  # i 为当前词的 pos
                 max_prob, last_point = float('-inf'), ''
-                emit = math.log(self.emit_prop[i].get(sentence[t], 1e-16) / self.emit_sum[i])
+                emit = math.log(self.emit_prop[i].get(tokens[t], 1e-16) / self.emit_sum[i])
                 for j in self.poslist:  # j 为上一次的 pos
                     tmp = dp.loc[j, t - 1] + emit
                     tmp += math.log(self.trans_prop[j].get(i, 1e-16) / self.trans_sum[j])
@@ -128,25 +130,22 @@ class HmmPosTagger:
                 path_point.append(last_point)
             dp[t], path[t] = prob_pos, path_point
         # 回溯
-        prob_list = list(dp[len(sentence) - 1])
+        prob_list = list(dp[len(tokens) - 1])
         cur_pos = self.poslist[prob_list.index(max(prob_list))]
         path_que = []
         path_que.append(cur_pos)
-        for i in range(len(sentence) - 1, 0, -1):
+        for i in range(len(tokens) - 1, 0, -1):
             cur_pos = path[i].loc[cur_pos]
             path_que.append(cur_pos)
         # 返回结果
         postag = []
-        for i in range(len(sentence)):
-            postag.append(sentence[i] + '/' + path_que[-i - 1])
-        print(postag)
+        for i in range(len(tokens)):
+            postag.append(path_que[-i - 1])
         return postag
 
 
 if __name__ == "__main__":
-    # data_clean()
     hmm = HmmPosTagger()
-    hmm.train("data/199801.txt")
     hmm.predict("在 这 一 年 中 ， 中国 的 改革 开放 和 现代化 建设 继续 向前 迈进  再次 获得 好 的 收成 ")
 
 # 1. 语料库中有 26 个基本词类标记
