@@ -6,7 +6,7 @@ if __name__ == '__main__':
     parser = StatisticalChineseParser()
 
     # Tokenization.
-    tokens = parser.tokenize(text=text, tokenizer="bmm")
+    tokens = parser.tokenize(text=text, tokenizer="hmm")
     print(tokens)
 
     # Pos tagging.

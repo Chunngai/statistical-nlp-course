@@ -1,22 +1,24 @@
 from typing import List
 
 from pos_taggers.hmm_pos_tagger import HmmPosTagger
-from tokenizers.rule_based_tokenizer import mm_tokenize, rmm_tokenize, bmm_tokenize
+from tokenizers.hmm_tokenizar import HmmTokenizer
+from tokenizers.max_match_tokenizer import mm_tokenize, rmm_tokenize, bmm_tokenize
 
 
 class StatisticalChineseParser:
     """A statistical Chinese parser with basic nlp functionalities."""
 
     def __init__(self):
-        self.tokenizers = {
+        self.tokenize_funcs = {
             "mm": mm_tokenize,
             "rmm": rmm_tokenize,
             "bmm": bmm_tokenize,
+            "hmm": HmmTokenizer().tokenize,
         }
 
         self.pos_tagger = HmmPosTagger()
 
-    def tokenize(self, text: str, tokenizer: str = "bmm") -> List[str]:
+    def tokenize(self, text: str, tokenizer: str = "hmm") -> List[str]:
         """Text tokenization.
 
         :param text: (str) text to tokenize.
@@ -24,7 +26,7 @@ class StatisticalChineseParser:
         :return: (List[str]) tokens of the text.
         """
 
-        tokenizer = self.tokenizers[tokenizer]
+        tokenizer = self.tokenize_funcs[tokenizer]
         return tokenizer(text)
 
     def pos_tag(self, tokens: List[str]) -> List[str]:
