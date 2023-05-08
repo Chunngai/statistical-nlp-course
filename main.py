@@ -1,4 +1,4 @@
-from statisticalchineseparser import StatisticalChineseParser
+from statistical_chinese_parser import StatisticalChineseParser
 
 if __name__ == '__main__':
     text = "一个基于统计的中文文本解析器。"
