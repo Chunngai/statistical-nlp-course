@@ -32,9 +32,9 @@ class StatisticalChineseParser:
                 NP  ->  NP PP [0.2]
                 NP  ->  N [0.7]
                 PP  ->  P NP [1.0]
-                V   ->  "people" [0.1] | "fish" [0.6] | "tanks" [0.3]
-                N   ->  "people" [0.5] | "fish" [0.2] | "tanks" [0.2] | "rods" [0.1]
-                P   ->  "with" [1.0]
+                V   ->  "举行" [0.6] | "fish" [0.1] | "tanks" [0.3]
+                N   ->  "北京" [0.5] | "新年" [0.2] | "上海" [0.2] | "晚会" [0.1]
+                P   ->  "和" [0.7] | "都" [0.2]
             """),
             root_value="S"
         )

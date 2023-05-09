@@ -1,7 +1,7 @@
 from statistical_chinese_parser import StatisticalChineseParser
 
 if __name__ == '__main__':
-    text = "一个基于统计的中文文本解析器。"
+    text = "北京和上海举行新年晚会。"
 
     parser = StatisticalChineseParser()
 
@@ -14,5 +14,5 @@ if __name__ == '__main__':
     print(pos_list)
 
     # Syntax parsing.
-    constituency_root = parser.constituency_parse(tokens=["fish", "people", "fish", "tanks"])
+    constituency_root = parser.constituency_parse(tokens=tokens[:-1])
     print(constituency_root)
