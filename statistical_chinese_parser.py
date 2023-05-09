@@ -36,7 +36,7 @@ class StatisticalChineseParser:
                 N   ->  "北京" [0.5] | "新年" [0.2] | "上海" [0.2] | "晚会" [0.1]
                 P   ->  "和" [0.7] | "都" [0.2]
             """),
-            root_value="S"
+            root_value="S",
         )
 
     def tokenize(self, text: str, tokenizer: str = "hmm") -> List[str]:

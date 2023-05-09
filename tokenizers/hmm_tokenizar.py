@@ -1,43 +1,57 @@
 # -*- encoding: utf-8 -*-
 import json
+import os
 
 import pandas as pd
 
 
 class HmmTokenizer:
     def __init__(self):
+        self.start_p = {'S': 0, 'B': 0, 'M': 0, 'E': 0}
         self.trans_p = {'S': {}, 'B': {}, 'M': {}, 'E': {}}
         self.emit_p = {'S': {}, 'B': {}, 'M': {}, 'E': {}}
-        self.start_p = {'S': 0, 'B': 0, 'M': 0, 'E': 0}
         self.state_num = {'S': 0, 'B': 0, 'M': 0, 'E': 0}
         self.state_list = ['S', 'B', 'M', 'E']
         self.line_num = 0
         self.smooth = 1e-6
 
-        self.train('data/199801.txt')
+        fp_params = "data/hmm_tokenizer.params"
+        if os.path.exists(fp_params):
+            with open(fp_params, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            self.start_p = d["start_p"]
+            self.trans_p = d["trans_p"]
+            self.emit_p = d["emit_p"]
+        else:
+            self.train('data/199801.txt', fp_save=fp_params)
 
     @staticmethod
-    def __state(word):
-        """获取词语的BOS标签，标注采用 4-tag 标注方法，
+    def __state(word: str):
+        """获取词语的BOS标签。
+
+        标注采用 4-tag 标注方法，
         tag = {S,B,M,E}，S表示单字为词，B表示词的首字，M表示词的中间字，E表示词的结尾字
 
         Args:
-            word (string): 函数返回词语 word 的状态标签
+            word (str): 函数返回词语 word 的状态标签。
         """
+
         if len(word) == 1:
             state = ['S']
         else:
             state = list('B' + 'M' * (len(word) - 2) + 'E')
+
         return state
 
-    def train(self, filepath, save_model=False):
-        """训练hmm, 学习发射概率、转移概率等参数
+    def train(self, filepath: str, fp_save: str):
+        """训练hmm, 学习发射概率、转移概率等参数。
 
         Args:
-            save_model: 是否保存模型参数
-            filepath (string): 训练预料的路径
+            filepath (str): 训练语料的路径。
+            fp_save (str): 参数路径。
         """
-        with open(filepath, 'r', encoding='gbk') as f:
+
+        with open(filepath, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 line = line.strip().split()
                 line = [
@@ -80,27 +94,27 @@ class HmmTokenizer:
                  for k2, num in dic.items()}
             for k1, dic in self.trans_p.items()
         }
-        # 保存参数
-        if save_model:
-            parameters = {
-                'start_p': self.start_p,
-                'trans_p': self.trans_p,
-                'emit_p': self.emit_p
-            }
-            jsonstr = json.dumps(parameters, ensure_ascii=False, indent=4)  # 输出上面的参数  输出到文件
-            param_filepath = "tokenizers/data/HmmParam_Token.json"
-            with open(param_filepath, 'w', encoding='utf8') as jsonfile:
-                jsonfile.write(jsonstr)
 
-    def viterbi(self, text):
-        """Viterbi 算法
+        # 保存参数
+        parameters = {
+            'start_p': self.start_p,
+            'trans_p': self.trans_p,
+            'emit_p': self.emit_p
+        }
+        jsonstr = json.dumps(parameters, ensure_ascii=False, indent=4)  # 输出上面的参数  输出到文件
+        with open(fp_save, 'w', encoding='utf8') as jsonfile:
+            jsonfile.write(jsonstr)
+
+    def viterbi(self, text: str):
+        """Viterbi 算法。
 
         Args:
-            text (string): 句子
+            text (str): 句子。
 
         Returns:
-            list: 最优标注序列
+            list: 最优标注序列。
         """
+
         text = list(text)
         dp = pd.DataFrame(index=self.state_list)
         # 初始化 dp 矩阵 (prop，last_state)
@@ -131,17 +145,19 @@ class HmmTokenizer:
             back_point = dp.loc[back_point, i][1]  # 指所有字符的
             path.append(back_point)
         path.reverse()
+
         return path
 
-    def tokenize(self, text):
-        """根据 viterbi 算法获得状态，根据状态切分句子
+    def tokenize(self, text: str):
+        """根据 viterbi 算法获得状态，根据状态切分句子。
 
         Args:
-            text (string): 待分词的句子
+            text (str): 待分词的句子。
 
         Returns:
-            list: 分词列表
+            list: 分词列表。
         """
+
         state = self.viterbi(text)
         cut_res = []  # 切分
         begin = 0

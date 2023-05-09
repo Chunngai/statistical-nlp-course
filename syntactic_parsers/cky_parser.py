@@ -3,7 +3,7 @@ from typing import List, Tuple, Set, Dict
 
 class Rule:
 
-    def __init__(self, head: str, ltail: str, prob: float, rtail: str = "", ):
+    def __init__(self, head: str, ltail: str, prob: float, rtail: str = ""):
         self.head = head
         self.ltail = ltail
         self.rtail = rtail
@@ -13,11 +13,12 @@ class Rule:
         return self.head + "->" + self.ltail + " " + self.rtail + " " + str(self.prob)
 
     def is_terminal_rule(self, terminal_set: Set) -> bool:
+        """Judge the node which is the terminal rule.
+
+        :param terminal_set: node.value set, which should be the word.
+        :return: true or false.
         """
-        Judge the node which is the terminal rule
-        :param terminal_set: node.value set, which should be the word
-        :return: true or false
-        """
+
         if self.ltail in terminal_set and self.rtail == "":
             return True
         else:
@@ -33,18 +34,18 @@ class Rule:
 class Node:
 
     def __init__(self, value: str, lchild, prob: float, rchild=None):
-        """
-        A class for constructing the grammar rule.
-        Each Node object has 4 attributes: parent, lchild, rchild, probability(named by prob)
-        the children are determined by the arrow("->") of the grammar rule
+        """A class for constructing the grammar rule.
+
+        Each Node object has 4 attributes: parent, lchild, rchild, probability (named by prob).
+        The children are determined by the arrow ("->") of the grammar rule.
 
         Example:    S   ->  NP VP [0.9]
-        :param value: string, the name of this node, Non-terminal or terminal, exists in the left of arrow (example: S)
-        :param lchild: Node or None, Non-terminal(Node) or terminal(string), the first element existing in the right
-                        of arrow (example: NP)
-        :param prob: the probability of the rule (example: 0.9)
+        :param value: string, the name of this node, Non-terminal or terminal, exists in the left of arrow (example: S).
+        :param lchild: Node or None, Non-terminal (Node) or terminal (string), the first element existing in the right
+            of arrow (example: NP).
+        :param prob: the probability of the rule (example: 0.9).
         :param rchild: Node or None, the second element (Node) existing in the right of arrow (example: VP)
-                        otherwise, set as the default value (None)
+            otherwise, set as the default value (None).
         """
 
         self.value = value
@@ -91,8 +92,7 @@ class Node:
 
 class CKYParser:
 
-    def __init__(self, rule_list: List[Rule], terminal_set: Set[str],
-                 root_value: str):
+    def __init__(self, rule_list: List[Rule], terminal_set: Set[str], root_value: str):
         """Initialize the dynamic programming matrix of the parser"""
 
         # the number of dictionaries in each inner list is the number of column in the statistics table
@@ -164,7 +164,6 @@ class CKYParser:
                                 lchild=matrix_element[rule.ltail],
                                 prob=rule.prob * item[1].prob
                             )
-                            # matrix_element[rule.head].prob =
 
                 if len(matrix_element.items()) == element_dict_len:
                     break
@@ -253,7 +252,6 @@ class CKYParser:
 
         # store the root node
         self.root = dp_matrix[0][len(tokens) - 1][self.root_value]
-        print("The syntax tree is generated !")
         # print(self.dp_matrix[0][0]["N"].lchild)
         # print(self.dp_matrix[0][len(self.input_tokens) - 1]['S'])
 
@@ -263,15 +261,11 @@ class CKYParser:
         return self.root
 
 
-# visualize the syntax tree
-# def visual_syntax_tree(root: Node):
-
-
 def read_grammar(grammar: str) -> Tuple[List[Rule], Set[str]]:
-    """
-    Read the PCFG grammar and convert each rule to Node object
-    :param grammar: a string, storing the grammar rules
-    :return: rule_list, non-terminal_list, terminal_list
+    """Read the PCFG grammar and convert each rule to Node object.
+
+    :param grammar: a string, storing the grammar rules.
+    :return: rule_list, non-terminal_list, terminal_list.
     """
 
     rule_list, terminal_node_list = [], []
@@ -303,12 +297,6 @@ def read_grammar(grammar: str) -> Tuple[List[Rule], Set[str]]:
                     prob=prob
                 )
 
-                # current_node = Node(
-                #     parent=current_value,
-                #     lchild=current_lchild,
-                #     rchild=current_rchild,
-                #     prob=prob
-                # )
                 rule_list.append(current_rule)
                 terminal_node_list.append(current_lchild)
 
@@ -326,19 +314,12 @@ def read_grammar(grammar: str) -> Tuple[List[Rule], Set[str]]:
                 current_lchild = current_children
                 terminal_node_list.append(current_lchild)
 
-
             # judge if the rchild whether exists or not
             elif " " in current_children:
                 current_lchild, current_rchild = current_children.split(' ')
             else:
                 current_lchild = current_children
 
-            # current_node = Node(
-            #     parent=current_value,
-            #     lchild=current_lchild,
-            #     rchild=current_rchild,
-            #     prob=prob
-            # )
             current_rule = Rule(
                 head=current_value,
                 ltail=current_lchild,
@@ -373,12 +354,12 @@ if __name__ == '__main__':
     rule_list, terminal_node_set = read_grammar(grammar=grammar)
 
     # init the CKYParser
-    test = CKYParser(
+    cky_parser = CKYParser(
         rule_list=rule_list,
         terminal_set=terminal_node_set,
         root_value="S"
     )
 
     # constituency parse
-    root = test.parse(tokens=["fish", "people", "fish", "tanks"])
+    root = cky_parser.parse(tokens=["fish", "people", "fish", "tanks"])
     print(root)
